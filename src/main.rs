@@ -1,6 +1,5 @@
 use image;
 
-// 画像を読み込む
 fn main() {
     // 画像を読み込む
     let img: image::ImageBuffer<image::Rgb<u8>, Vec<u8>> =
@@ -12,8 +11,25 @@ fn main() {
         pixels.push((pixel[0] as f64 + pixel[1] as f64 + pixel[2] as f64) / 3.0 < 230.0);
     }
 
-    let mut output_image =
-        image::ImageBuffer::<image::Rgb<u8>, Vec<u8>>::new(img.width(), img.height());
+    // 画像を保存
+    // create_output_image(pixels, img.width(), img.height())
+    //     .save_with_format("output/north.png", image::ImageFormat::Png)
+    //     .unwrap();
+
+    println!("処理が完了しました。");
+}
+
+fn create_commands(pixels: Vec<bool>, width: u32, height: u32) -> String {
+    // setblock ~-34 -8 ~41 minecraft:resin_brick
+}
+
+/// 正常に読み込めているかの画像を生成する
+fn create_output_image(
+    pixels: Vec<bool>,
+    width: u32,
+    height: u32,
+) -> image::ImageBuffer<image::Rgb<u8>, Vec<u8>> {
+    let mut output_image = image::ImageBuffer::<image::Rgb<u8>, Vec<u8>>::new(width, height);
 
     for (index, pixel) in output_image.pixels_mut().enumerate() {
         let color = if pixels[index] { 0 } else { 255 };
@@ -22,10 +38,5 @@ fn main() {
         pixel[2] = color;
     }
 
-    // 画像を保存
     output_image
-        .save_with_format("output/north.png", image::ImageFormat::Png)
-        .unwrap();
-
-    println!("処理が完了しました。");
 }
