@@ -1,23 +1,33 @@
-use image::{DynamicImage, GenericImageView, ImageFormat, io::Reader as ImageReader};
-use std::path::Path;
+use std::boxed::box_new;
+
+use image::{self, Pixel};
 
 // 画像を読み込む
 fn main() {
     // 画像を読み込む
-    let img: DynamicImage = image::open("input/north.png").unwrap();
+    let img: image::ImageBuffer<image::Rgb<u8>, Vec<u8>> =
+        image::open("input/north.png").unwrap().to_rgb8();
 
-    // グレイスケールに変換
-    let gray_img: DynamicImage = img.grayscale();
+    let mut pixels: Vec<bool> = vec![];
 
-    // RGBA画像に変換し、透明度を1.0（不透明）に設定
-    let mut rgba_img = gray_img.to_rgba8();
-    for pixel in rgba_img.pixels_mut() {
-        pixel[3] = 255; // アルファチャンネルを255（不透明）に設定
+    for pixel in img.pixels() {
+        pixels
+            .push(pixel[3] > 0 && (pixel[0] as u16 + pixel[1] as u16 + pixel[2] as u16) / 3 < 230);
+    }
+
+    let mut output_image = image::ImageBuffer::new(img.width(), img.height());
+
+    for (index, pixel) in output_image.pixels_mut().enumerate() {
+        let value = pixels[index];
+        pixel[0] = if value { 0 } else { 255 };
+        pixel[1] = if value { 0 } else { 255 };
+        pixel[2] = if value { 0 } else { 255 };
+        pixel[3] = 255;
     }
 
     // 画像を保存
-    rgba_img
-        .save_with_format("output/north.png", ImageFormat::Png)
+    output_image
+        .save_with_format("output/north.png", image::ImageFormat::Png)
         .unwrap();
 
     println!("処理が完了しました。");
