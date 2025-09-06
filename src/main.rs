@@ -1,28 +1,24 @@
-
-use std::path::Path;
 use image::{DynamicImage, GenericImageView, ImageFormat, io::Reader as ImageReader};
+use std::path::Path;
 
+// 画像を読み込む
 fn main() {
-    // 入力画像のパス
-    let input_path = Path::new("input/north-input.png");
-    // 出力画像のパス
-    let output_path = Path::new("output/north-input-gray.png");
-
     // 画像を読み込む
-    let img = ImageReader::open(input_path)
-        .expect("画像ファイルが開けません")
-        .decode()
-        .expect("画像のデコードに失敗しました");
+    let img: DynamicImage = image::open("input/north.png").unwrap();
 
-    // グレイスケール化
-    let gray_img = img.grayscale();
+    // グレイスケールに変換
+    let gray_img: DynamicImage = img.grayscale();
 
-    // 出力フォルダがなければ作成
-    std::fs::create_dir_all("output").expect("outputフォルダの作成に失敗しました");
+    // RGBA画像に変換し、透明度を1.0（不透明）に設定
+    let mut rgba_img = gray_img.to_rgba8();
+    for pixel in rgba_img.pixels_mut() {
+        pixel[3] = 255; // アルファチャンネルを255（不透明）に設定
+    }
 
-    // グレイスケール画像を保存
-    gray_img.save_with_format(output_path, ImageFormat::Png)
-        .expect("画像の保存に失敗しました");
+    // 画像を保存
+    rgba_img
+        .save_with_format("output/north.png", ImageFormat::Png)
+        .unwrap();
 
-    println!("グレイスケール画像をoutputフォルダに保存しました。");
+    println!("処理が完了しました。");
 }
