@@ -16,11 +16,34 @@ fn main() {
     //     .save_with_format("output/north.png", image::ImageFormat::Png)
     //     .unwrap();
 
+    // コマンドを保存
+
+    std::fs::write(
+        "output/wall/data/wall/function/north.mcfunction",
+        create_commands(pixels, img.width(), img.height()),
+    )
+    .unwrap();
+
     println!("処理が完了しました。");
 }
 
 fn create_commands(pixels: Vec<bool>, width: u32, height: u32) -> String {
-    // setblock ~-34 -8 ~41 minecraft:resin_brick
+    let mut commands = String::new();
+    for y in 0..height {
+        for x in 0..width {
+            let index = (y * width + x) as usize;
+            commands.push_str(&format!(
+                "setblock ~{x} ~0 ~{} minecraft:{}\n",
+                height - y,
+                if pixels[index] {
+                    "smooth_stone"
+                } else {
+                    "stone_bricks"
+                }
+            ));
+        }
+    }
+    commands
 }
 
 /// 正常に読み込めているかの画像を生成する
