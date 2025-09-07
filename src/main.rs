@@ -33,12 +33,12 @@ fn create_commands(pixels: Vec<bool>, width: u32, height: u32) -> String {
         for x in 0..width {
             let index = (y * width + x) as usize;
             commands.push_str(&format!(
-                "setblock ~{x} ~0 ~{} minecraft:{}\n",
+                "setblock ~{x} ~{} ~0 minecraft:{}\n",
                 height - y,
                 if pixels[index] {
-                    "smooth_stone"
+                    "deepslate_tiles"
                 } else {
-                    "stone_bricks"
+                    "smooth_stone"
                 }
             ));
         }
