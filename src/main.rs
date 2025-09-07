@@ -1,9 +1,29 @@
 use image;
 
 fn main() {
-    // 画像を読み込む
-    let img: image::ImageBuffer<image::Rgb<u8>, Vec<u8>> =
-        image::open("input/north.png").unwrap().to_rgb8();
+    let input_dir = std::fs::read_dir("./input").unwrap();
+    for entry in input_dir {
+        let entry = entry.expect("ファイルの取得に失敗しました");
+        let path = entry.path();
+        if path.is_file() {
+            if let Some(ext) = path.extension() {
+                if ext == "png" {
+                    if let Some(file_name) = path.file_stem().and_then(|s| s.to_str()) {
+                        input_output(file_name.to_string());
+                    }
+                }
+            }
+        }
+    }
+    println!("全画像の処理が完了しました。");
+}
+
+fn input_output(file_name: String) {
+    // 入力画像パスを動的に生成
+    let input_path = format!("input/{}.png", file_name);
+    let img: image::ImageBuffer<image::Rgb<u8>, Vec<u8>> = image::open(&input_path)
+        .unwrap_or_else(|_| panic!("{} の読み込みに失敗", input_path))
+        .to_rgb8();
 
     let mut pixels: Vec<bool> = vec![];
 
@@ -11,20 +31,19 @@ fn main() {
         pixels.push((pixel[0] as f64 + pixel[1] as f64 + pixel[2] as f64) / 3.0 < 230.0);
     }
 
-    // 画像を保存
+    // 画像を保存（必要ならコメント解除）
+    // let output_img_path = format!("output/{}.png", file_name);
     // create_output_image(pixels, img.width(), img.height())
-    //     .save_with_format("output/north.png", image::ImageFormat::Png)
+    //     .save_with_format(&output_img_path, image::ImageFormat::Png)
     //     .unwrap();
 
     // コマンドを保存
-
+    let output_cmd_path = format!("output/wall/data/wall/function/{}.mcfunction", file_name);
     std::fs::write(
-        "output/wall/data/wall/function/north.mcfunction",
+        &output_cmd_path,
         create_commands(pixels, img.width(), img.height()),
     )
     .unwrap();
-
-    println!("処理が完了しました。");
 }
 
 fn create_commands(pixels: Vec<bool>, width: u32, height: u32) -> String {
@@ -36,9 +55,9 @@ fn create_commands(pixels: Vec<bool>, width: u32, height: u32) -> String {
                 "setblock ~{x} ~{} ~0 minecraft:{}\n",
                 height - y,
                 if pixels[index] {
-                    "deepslate_tiles"
-                } else {
                     "smooth_stone"
+                } else {
+                    "deepslate_tiles"
                 }
             ));
         }
