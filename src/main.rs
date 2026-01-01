@@ -15,13 +15,10 @@ async fn hello(_: Request<hyper::body::Incoming>) -> Result<Response<Full<Bytes>
 
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let addr = SocketAddr::from((
-        [127, 0, 0, 1],
-        match std::env::var("PORT") {
-            Ok(port) => port.parse().expect("PORT must be a number"),
-            Err(_) => 3000,
-        },
-    ));
+    let addr = match std::env::var("PORT") {
+        Ok(port) => SocketAddr::from(([0, 0, 0, 0], port.parse().expect("PORT must be a number"))),
+        Err(_) => SocketAddr::from(([127, 0, 0, 1], 3000)),
+    };
 
     println!("Listening on http://{}", addr);
 
