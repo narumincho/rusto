@@ -7,3 +7,5 @@ edition = "2024"
 image = "0.25.9"
 axum = "0.8.8"
 tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+reqwest = { version = "0.13", default-features = false, features = ["json", "native-tls", "http2"] }
