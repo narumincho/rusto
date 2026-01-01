@@ -9,36 +9,44 @@ use hyper::{Request, Response};
 use hyper_util::rt::TokioIo;
 use tokio::net::TcpListener;
 
-async fn hello(_: Request<hyper::body::Incoming>) -> Result<Response<Full<Bytes>>, Infallible> {
+async fn handler(_: Request<hyper::body::Incoming>) -> Result<Response<Full<Bytes>>, Infallible> {
     Ok(Response::new(Full::new(Bytes::from("Hello, World!"))))
+}
+
+async fn get_notion_api_key() -> String {
+    match std::env::var("NOTION_KEY") {
+        // in Cloud Run
+        Ok(val) => val,
+        // local dev
+        Err(_) => std::fs::read_to_string("./notionApiKey.txt").unwrap(),
+    }
 }
 
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    println!(
+        "Starting server... notion api key {}",
+        get_notion_api_key().await
+    );
     let addr = match std::env::var("PORT") {
+        // in Cloud Run
         Ok(port) => SocketAddr::from(([0, 0, 0, 0], port.parse().expect("PORT must be a number"))),
+        // local dev
         Err(_) => SocketAddr::from(([127, 0, 0, 1], 3000)),
     };
 
     println!("Listening on http://{}", addr);
 
-    // We create a TcpListener and bind it to 127.0.0.1:3000
     let listener = TcpListener::bind(addr).await?;
 
-    // We start a loop to continuously accept incoming connections
     loop {
         let (stream, _) = listener.accept().await?;
 
-        // Use an adapter to access something implementing `tokio::io` traits as if they implement
-        // `hyper::rt` IO traits.
         let io = TokioIo::new(stream);
 
-        // Spawn a tokio task to serve multiple connections concurrently
         tokio::task::spawn(async move {
-            // Finally, we bind the incoming connection to our `hello` service
             if let Err(err) = http1::Builder::new()
-                // `service_fn` converts our function in a `Service`
-                .serve_connection(io, service_fn(hello))
+                .serve_connection(io, service_fn(handler))
                 .await
             {
                 eprintln!("Error serving connection: {:?}", err);
