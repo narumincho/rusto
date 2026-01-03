@@ -1,3 +1,4 @@
+mod notion;
 mod notion_minecraft_db;
 
 use std::net::SocketAddr;
