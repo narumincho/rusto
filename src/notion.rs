@@ -120,12 +120,28 @@ pub struct UpdatePageParameter {
 #[derive(serde::Serialize)]
 struct UpdatePageRequestBody {
     id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    icon: Option<UpdatePageIcon>,
     properties: UpdatePropertyParameter,
 }
 
 #[derive(serde::Serialize)]
+struct UpdatePageIcon {
+    #[serde(rename = "type")]
+    type_: String,
+    external: UpdatePageIconExternal,
+}
+
+#[derive(serde::Serialize)]
+struct UpdatePageIconExternal {
+    url: String,
+}
+
+#[derive(serde::Serialize)]
 struct UpdatePropertyParameter {
+    #[serde(skip_serializing_if = "Option::is_none")]
     ユーザー名: Option<NotionTitleProperty>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     ユーザーID: Option<NotionRichTextProperty>,
 }
 
@@ -134,6 +150,12 @@ pub async fn update_page(page_id: &String, parameter: &UpdatePageParameter) {
         reqwest::Url::parse(&format!("https://api.notion.com/v1/pages/{}", page_id)).unwrap();
     let update_body = UpdatePageRequestBody {
         id: page_id.clone(),
+        icon: parameter.user_id.as_ref().map(|user_id| UpdatePageIcon {
+            type_: "external".to_string(),
+            external: UpdatePageIconExternal {
+                url: format!("https://mc-heads.net/avatar/{}", user_id),
+            },
+        }),
         properties: UpdatePropertyParameter {
             ユーザー名: parameter
                 .user_name
@@ -165,5 +187,5 @@ pub async fn update_page(page_id: &String, parameter: &UpdatePageParameter) {
         .send()
         .await
         .unwrap();
-    println!("{}", response.text().await.unwrap());
+    println!("response: {}", response.text().await.unwrap());
 }
