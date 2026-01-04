@@ -27,8 +27,8 @@ fn main() {
         if !wasm_pack_path.exists() {
             let version = "v0.13.1";
             let url = format!(
-                "https://github.com/rustwasm/wasm-pack/releases/download/{}/{}-{}.tar.gz",
-                version, "wasm-pack", version
+                "https://github.com/rustwasm/wasm-pack/releases/download/{}/wasm-pack-{}-x86_64-unknown-linux-musl.tar.gz",
+                version, version
             );
             let tarball = install_dir.join("wasm-pack.tar.gz");
 
