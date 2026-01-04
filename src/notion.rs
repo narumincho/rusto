@@ -115,6 +115,7 @@ fn rich_text_to_string(rich_text: &Vec<NotionRichTextItem>) -> String {
 pub struct UpdatePageParameter {
     pub user_id: Option<String>,
     pub user_name: Option<String>,
+    pub user_icon_url: Option<String>,
 }
 
 #[derive(serde::Serialize)]
@@ -150,12 +151,15 @@ pub async fn update_page(page_id: &String, parameter: &UpdatePageParameter) {
         reqwest::Url::parse(&format!("https://api.notion.com/v1/pages/{}", page_id)).unwrap();
     let update_body = UpdatePageRequestBody {
         id: page_id.clone(),
-        icon: parameter.user_id.as_ref().map(|user_id| UpdatePageIcon {
-            type_: "external".to_string(),
-            external: UpdatePageIconExternal {
-                url: format!("https://mc-heads.net/avatar/{}", user_id),
-            },
-        }),
+        icon: parameter
+            .user_icon_url
+            .as_ref()
+            .map(|user_icon_url| UpdatePageIcon {
+                type_: "external".to_string(),
+                external: UpdatePageIconExternal {
+                    url: user_icon_url.clone(),
+                },
+            }),
         properties: UpdatePropertyParameter {
             ユーザー名: parameter
                 .user_name
