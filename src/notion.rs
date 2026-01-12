@@ -1,5 +1,3 @@
-use image::codecs::jpeg::PixelDensity;
-
 pub struct UserNameAndId {
     pub id: String,
     pub user_name: String,
