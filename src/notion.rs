@@ -23,6 +23,7 @@ pub struct NotionPageParent {
 
 #[derive(serde::Deserialize, Debug)]
 pub struct NotionDatabaseResponse {
+    next_cursor: Option<String>,
     results: Vec<NotionPageObjectWithProperties>,
 }
 
@@ -58,7 +59,21 @@ pub struct NotionRichTextItemText {
     content: String,
 }
 
-pub async fn get_notion_pages_in_data_source(data_source_id: &String) -> Vec<UserNameAndId> {
+#[derive(serde::Serialize, Debug)]
+pub struct NotionQueryRequestBody {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    start_cursor: Option<String>,
+}
+
+pub struct NotionQueryResponse {
+    pub results: Vec<UserNameAndId>,
+    pub next_cursor: Option<String>,
+}
+
+pub async fn get_notion_pages_in_data_source(
+    data_source_id: &String,
+    start_cursor: Option<String>,
+) -> anyhow::Result<NotionQueryResponse> {
     let url = reqwest::Url::parse_with_params(
         &format!(
             "https://api.notion.com/v1/data_sources/{}/query",
@@ -68,39 +83,39 @@ pub async fn get_notion_pages_in_data_source(data_source_id: &String) -> Vec<Use
             ("filter_properties[]", "ユーザー名"),
             ("filter_properties[]", "ユーザーID"),
         ],
-    )
-    .unwrap();
+    )?;
     let response: NotionDatabaseResponse = reqwest::Client::new()
         .post(url)
         .header("Notion-Version", "2025-09-03")
         .header(
             "Authorization",
-            format!("Bearer {}", get_notion_api_key().await),
+            format!("Bearer {}", get_notion_api_key().await?),
         )
-        // TODO pagination
+        .json(&NotionQueryRequestBody { start_cursor })
         .send()
-        .await
-        .unwrap()
+        .await?
         .json::<NotionDatabaseResponse>()
-        .await
-        .unwrap();
-    response
-        .results
-        .into_iter()
-        .map(|page| UserNameAndId {
-            id: page.id,
-            user_name: rich_text_to_string(&page.properties.ユーザー名.title),
-            user_id: rich_text_to_string(&page.properties.ユーザーID.rich_text),
-        })
-        .collect()
+        .await?;
+    Ok(NotionQueryResponse {
+        results: response
+            .results
+            .into_iter()
+            .map(|page| UserNameAndId {
+                id: page.id,
+                user_name: rich_text_to_string(&page.properties.ユーザー名.title),
+                user_id: rich_text_to_string(&page.properties.ユーザーID.rich_text),
+            })
+            .collect(),
+        next_cursor: response.next_cursor,
+    })
 }
 
-async fn get_notion_api_key() -> String {
+async fn get_notion_api_key() -> anyhow::Result<String> {
     match std::env::var("NOTION_KEY") {
         // in Cloud Run
-        Ok(val) => val,
+        Ok(val) => Ok(val),
         // local dev
-        Err(_) => std::fs::read_to_string("./notionApiKey.txt").unwrap(),
+        Err(_) => Ok(std::fs::read_to_string("./notionApiKey.txt")?),
     }
 }
 
@@ -146,9 +161,8 @@ struct UpdatePropertyParameter {
     ユーザーID: Option<NotionRichTextProperty>,
 }
 
-pub async fn update_page(page_id: &String, parameter: &UpdatePageParameter) {
-    let update_url =
-        reqwest::Url::parse(&format!("https://api.notion.com/v1/pages/{}", page_id)).unwrap();
+pub async fn update_page(page_id: &String, parameter: &UpdatePageParameter) -> anyhow::Result<()> {
+    let update_url = reqwest::Url::parse(&format!("https://api.notion.com/v1/pages/{}", page_id))?;
     let update_body = UpdatePageRequestBody {
         id: page_id.clone(),
         icon: parameter
@@ -185,11 +199,11 @@ pub async fn update_page(page_id: &String, parameter: &UpdatePageParameter) {
         .header("Notion-Version", "2025-09-03")
         .header(
             "Authorization",
-            format!("Bearer {}", get_notion_api_key().await),
+            format!("Bearer {}", get_notion_api_key().await?),
         )
         .json(&update_body)
         .send()
-        .await
-        .unwrap();
-    println!("response: {}", response.text().await.unwrap());
+        .await?;
+    println!("response: {}", response.text().await?);
+    Ok(())
 }
