@@ -5,11 +5,6 @@ pub struct UserNameAndId {
 }
 
 #[derive(serde::Deserialize, Debug)]
-pub struct NotionRequestBody {
-    pub data: NotionPageObject,
-}
-
-#[derive(serde::Deserialize, Debug)]
 pub struct NotionPageObject {
     pub parent: NotionPageParent,
 }
@@ -69,7 +64,7 @@ pub struct NotionQueryResponse {
 }
 
 pub async fn get_notion_pages_in_data_source(
-    data_source_id: &String,
+    data_source_id: &str,
     start_cursor: Option<String>,
 ) -> anyhow::Result<NotionQueryResponse> {
     let url = reqwest::Url::parse_with_params(

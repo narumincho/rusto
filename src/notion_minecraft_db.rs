@@ -1,12 +1,11 @@
-pub async fn post_handler(
-    axum::extract::Json(payload): axum::extract::Json<crate::notion::NotionRequestBody>,
-) -> &'static str {
-    let data_source_id = &payload.data.parent.data_source_id;
+const DATA_SOURCE_ID: &str = "2da33257-b9cf-8030-9be8-000b4a60ce28";
+
+pub async fn update_minecraft_db() -> &'static str {
     let mut cursor = None;
 
     loop {
         let pages_and_cursor =
-            match crate::notion::get_notion_pages_in_data_source(data_source_id, cursor).await {
+            match crate::notion::get_notion_pages_in_data_source(DATA_SOURCE_ID, cursor).await {
                 Ok(val) => val,
                 Err(e) => {
                     eprintln!("Error getting notion pages: {}", e);
