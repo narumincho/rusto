@@ -1,7 +1,8 @@
 mod notion;
 mod notion_minecraft_db;
-
-use std::net::SocketAddr;
+mod puzzle_e;
 
 #[tokio::main]
-pub async fn main() {}
+pub async fn main() {
+    puzzle_e::main();
+}
