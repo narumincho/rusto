@@ -154,7 +154,7 @@ pub async fn generate_graph() -> Result<(), anyhow::Error> {
 
   <!-- Background -->
   <rect width="{}" height="{}" rx="16" ry="16" fill="url(#bgGradient)" stroke="#313244" stroke-width="2"/>
-  <text x="875" y="22" font-size="11" fill="#a6adc8" font-family="sans-serif" text-anchor="end">生成日時: {}</text>
+  <text x="875" y="22" font-size="11" fill="#a6adc8" font-family="sans-serif" text-anchor="end">集計日時: {}</text>
 
 "##,
         width, height, width, height, width, height, generated_at
