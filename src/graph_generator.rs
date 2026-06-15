@@ -1,4 +1,5 @@
 use base64::Engine;
+use chrono::Local;
 use resvg::tiny_skia;
 use resvg::usvg;
 use serde::Deserialize;
@@ -131,6 +132,7 @@ pub async fn generate_graph() -> Result<(), anyhow::Error> {
     // 3. Build SVG String
     let width = 900;
     let height = 390;
+    let generated_at = Local::now().format("%Y-%m-%d %H:%M:%S %:z").to_string();
 
     let mut svg = String::new();
     svg.push_str(&format!(
@@ -152,9 +154,10 @@ pub async fn generate_graph() -> Result<(), anyhow::Error> {
 
   <!-- Background -->
   <rect width="{}" height="{}" rx="16" ry="16" fill="url(#bgGradient)" stroke="#313244" stroke-width="2"/>
+  <text x="875" y="22" font-size="11" fill="#a6adc8" font-family="sans-serif" text-anchor="end">生成日時: {}</text>
 
 "##,
-        width, height, width, height, width, height
+        width, height, width, height, width, height, generated_at
     ));
 
     // Grid details (scaled relative to 100% of capacity)
@@ -335,6 +338,7 @@ pub async fn generate_graph() -> Result<(), anyhow::Error> {
     let png_out_path = "./output/value_comparison_chart.png";
     pixmap.save_png(png_out_path)?;
     println!("Successfully rendered PNG graph to {}", png_out_path);
+    println!("Generated at {}", generated_at);
 
     Ok(())
 }
