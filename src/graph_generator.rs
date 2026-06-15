@@ -31,7 +31,6 @@ pub async fn generate_graph() -> Result<(), anyhow::Error> {
     std::fs::create_dir_all(cache_dir)?;
 
     // 2. Prepare images (cache check, download and base64-encode)
-    // Use compliant MediaWiki User-Agent to bypass Cloudflare protection
     let client = reqwest::Client::builder()
         .user_agent("MyMinecraftImageDownloader/1.0 (Contact: Narumi)")
         .build()?;
@@ -53,7 +52,6 @@ pub async fn generate_graph() -> Result<(), anyhow::Error> {
                     if let Ok(mut f) = File::open(&cache_path) {
                         let mut temp_bytes = Vec::new();
                         if f.read_to_end(&mut temp_bytes).is_ok() {
-                            // Check if the file is actually an HTML error page instead of a PNG
                             let is_html = temp_bytes.starts_with(b"<!DOCTYPE")
                                 || temp_bytes.starts_with(b"<html")
                                 || temp_bytes.starts_with(b"<svg")
@@ -78,48 +76,43 @@ pub async fn generate_graph() -> Result<(), anyhow::Error> {
                 if !loaded_from_cache {
                     println!("Downloading image for {}: {}", item.name, url);
                     match client.get(url).send().await {
-                        Ok(resp) => {
-                            match resp.bytes().await {
-                                Ok(resp_bytes) => {
-                                    let resp_vec = resp_bytes.to_vec();
+                        Ok(resp) => match resp.bytes().await {
+                            Ok(resp_bytes) => {
+                                let resp_vec = resp_bytes.to_vec();
+                                let is_html = resp_vec.starts_with(b"<!DOCTYPE")
+                                    || resp_vec.starts_with(b"<html")
+                                    || resp_vec.starts_with(b"<svg")
+                                    || resp_vec.starts_with(b"<?xml");
 
-                                    // Check if downloaded content is HTML
-                                    let is_html = resp_vec.starts_with(b"<!DOCTYPE")
-                                        || resp_vec.starts_with(b"<html")
-                                        || resp_vec.starts_with(b"<svg")
-                                        || resp_vec.starts_with(b"<?xml");
-
-                                    if is_html {
-                                        eprintln!(
-                                            "Warning: Downloaded content for {} is HTML, not a PNG.",
-                                            item.name
-                                        );
-                                    } else {
-                                        bytes = resp_vec;
-                                        // Save to cache
-                                        match File::create(&cache_path) {
-                                            Ok(mut f) => {
-                                                if f.write_all(&bytes).is_ok() {
-                                                    println!(
-                                                        "Saved downloaded texture for {} to cache",
-                                                        item.name
-                                                    );
-                                                }
-                                            }
-                                            Err(e) => {
-                                                eprintln!(
-                                                    "Failed to create cache file for {}: {:?}",
-                                                    item.name, e
+                                if is_html {
+                                    eprintln!(
+                                        "Warning: Downloaded content for {} is HTML, not a PNG.",
+                                        item.name
+                                    );
+                                } else {
+                                    bytes = resp_vec;
+                                    match File::create(&cache_path) {
+                                        Ok(mut f) => {
+                                            if f.write_all(&bytes).is_ok() {
+                                                println!(
+                                                    "Saved downloaded texture for {} to cache",
+                                                    item.name
                                                 );
                                             }
                                         }
+                                        Err(e) => {
+                                            eprintln!(
+                                                "Failed to create cache file for {}: {:?}",
+                                                item.name, e
+                                            );
+                                        }
                                     }
                                 }
-                                Err(e) => {
-                                    eprintln!("Failed to read bytes from {}: {:?}", item.name, e);
-                                }
                             }
-                        }
+                            Err(e) => {
+                                eprintln!("Failed to read bytes from {}: {:?}", item.name, e);
+                            }
+                        },
                         Err(e) => {
                             eprintln!("Failed to download image for {}: {:?}", item.name, e);
                         }
@@ -137,7 +130,7 @@ pub async fn generate_graph() -> Result<(), anyhow::Error> {
 
     // 3. Build SVG String
     let width = 900;
-    let height = 520;
+    let height = 390;
 
     let mut svg = String::new();
     svg.push_str(&format!(
@@ -160,55 +153,55 @@ pub async fn generate_graph() -> Result<(), anyhow::Error> {
   <!-- Background -->
   <rect width="{}" height="{}" rx="16" ry="16" fill="url(#bgGradient)" stroke="#313244" stroke-width="2"/>
 
-  <!-- Title -->
-  <text x="50%" y="45" font-size="22" font-weight="bold" fill="#cdd6f4" font-family="sans-serif" text-anchor="middle" letter-spacing="0.5">
-    Minecraft アイテム価値・市場価格 比較
-  </text>
-  <text x="50%" y="70" font-size="13" fill="#a6adc8" font-family="sans-serif" text-anchor="middle">
-    Base Value &amp; Market Premium per Chest Capacity
-  </text>
-
 "##,
         width, height, width, height, width, height
     ));
 
-    // Draw Grid Lines (from 0 to 11, step 1)
+    // Grid details (scaled relative to 100% of capacity)
     let grid_x_start = 280.0;
-    let grid_scale = 40.0;
-    let grid_y_start = 95.0;
-    let grid_y_end = 435.0;
+    let grid_scale = 440.0; // 100% = 440px
+    let grid_y_start = 20.0;
+    let grid_y_end = 355.0;
 
-    // Grid lines for 0 to 11
-    for v in 0..=11 {
-        let x = grid_x_start + (v as f64) * grid_scale;
-        // Subtle dashed lines
+    // Draw Grid Lines representing percentages (0%, 25%, 50%, 75%, 100%)
+    let ticks = [0.0, 0.25, 0.50, 0.75, 1.00];
+    let tick_labels = ["0%", "25%", "50%", "75%", "100%"];
+    for (idx, &t) in ticks.iter().enumerate() {
+        let x = grid_x_start + t * grid_scale;
         svg.push_str(&format!(
             r##"  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="#313244" stroke-width="1" stroke-dasharray="4"/>
-  <text x="{}" y="455" font-size="11" fill="#bac2de" font-family="sans-serif" text-anchor="middle">{}</text>
+  <text x="{}" y="372" font-size="11" fill="#bac2de" font-family="sans-serif" text-anchor="middle">{}</text>
 "##,
-            x, grid_y_start, x, grid_y_end, x, v
+            x, grid_y_start, x, grid_y_end, x, tick_labels[idx]
         ));
     }
 
     // X-Axis Baseline
     svg.push_str(&format!(
         r##"  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="#45475a" stroke-width="2"/>
-  <text x="{}" y="485" font-size="13" fill="#cdd6f4" font-family="sans-serif" text-anchor="middle" font-weight="bold">価値 (価格 / LC)</text>
 "##,
         grid_x_start,
         grid_y_end,
-        grid_x_start + 11.0 * grid_scale,
-        grid_y_end,
-        grid_x_start + 5.5 * grid_scale
+        grid_x_start + grid_scale,
+        grid_y_end
     ));
 
     // Draw Items
     for (i, item) in items.iter().enumerate() {
-        let item_y = 110.0 + (i as f64) * 65.0;
+        let item_y = 30.0 + (i as f64) * 65.0;
         let bar_y = item_y + 10.0;
         let bar_h = 20.0;
 
-        // Draw Row background block for hovering visual effect (premium design)
+        // Dynamic max capacity based on item unit (e.g. 5 for "5LC", 20 for "20LC")
+        let max_lc = item
+            .unit
+            .chars()
+            .filter(|c| c.is_ascii_digit())
+            .collect::<String>()
+            .parse::<f64>()
+            .unwrap_or(20.0);
+
+        // Draw Row background block
         svg.push_str(&format!(
             r##"  <!-- Row Background for {} -->
   <rect x="25" y="{}" width="850" height="55" rx="8" ry="8" fill="#181825" opacity="0.4"/>
@@ -225,7 +218,6 @@ pub async fn generate_graph() -> Result<(), anyhow::Error> {
                 item_y + 10.0
             ));
         } else {
-            // Render a beautiful 3D block fallback in SVG
             let cube_x = 40.0;
             let cube_y = item_y + 10.0;
             svg.push_str(&format!(
@@ -256,24 +248,23 @@ pub async fn generate_graph() -> Result<(), anyhow::Error> {
 "##,
             grid_x_start,
             bar_y,
-            11.0 * grid_scale,
+            grid_scale,
             bar_h
         ));
 
-        // Calculate lengths
+        // Calculate lengths as percentage of capacity
         let premium_val = item.market_premium.unwrap_or(0.0);
-        let base_w = item.value * grid_scale;
-        let premium_w = premium_val * grid_scale;
+        let base_w = (item.value / max_lc) * grid_scale;
+        let premium_w = (premium_val / max_lc) * grid_scale;
+        let total_pct = ((item.value + premium_val) / max_lc) * 100.0;
 
         if premium_val > 0.0 {
-            // Draw base bar (slightly truncated for 2px gap at the right edge)
             let draw_base_w = (base_w - 2.0).max(0.0);
             svg.push_str(&format!(
                 r##"  <rect x="{}" y="{}" width="{}" height="{}" rx="4" ry="4" fill="url(#baseGradient)" />
 "##,
                 grid_x_start, bar_y, draw_base_w, bar_h
             ));
-            // Draw premium bar (slightly shifted and truncated)
             let draw_premium_w = (premium_w - 2.0).max(0.0);
             svg.push_str(&format!(
                 r##"  <rect x="{}" y="{}" width="{}" height="{}" rx="4" ry="4" fill="url(#premiumGradient)" />
@@ -284,7 +275,6 @@ pub async fn generate_graph() -> Result<(), anyhow::Error> {
                 bar_h
             ));
         } else {
-            // Draw solid base bar
             svg.push_str(&format!(
                 r##"  <rect x="{}" y="{}" width="{}" height="{}" rx="4" ry="4" fill="url(#baseGradient)" />
 "##,
@@ -309,9 +299,10 @@ pub async fn generate_graph() -> Result<(), anyhow::Error> {
     <tspan fill="#89b4fa" font-weight="bold">{:.1}</tspan>
     {}
     <tspan fill="#a6adc8"> / {}</tspan>
+    <tspan fill="#a6adc8" font-size="11"> ({:.1}%)</tspan>
   </text>
 "##,
-            label_x, label_y, item.value, tspan_premium, item.unit
+            label_x, label_y, item.value, tspan_premium, item.unit, total_pct
         ));
     }
 
