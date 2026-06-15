@@ -22,15 +22,15 @@
   },
   {
     "name": "茶色のキノコブロック",
-    "value": 7.5,
+    "value": 8.7,
     "market_premium": 0.2,
     "unit": "20LC",
     "image_url": "https://minecraft.wiki/images/Brown_Mushroom_Block_%28ESU%29_JE2_BE2.png"
   },
   {
-    "name": "レンガブロック",
+    "name": "レンガ (ブロック)",
     "value": 9.7,
-    "market_premium": 1.2,
+    "market_premium": 0.5,
     "unit": "20LC",
     "image_url": "https://minecraft.wiki/images/Bricks_JE5_BE3.png"
   }
