@@ -1,37 +1,37 @@
 [
   {
     "name": "泥レンガ",
-    "value": 1.8,
+    "value": 3.6,
     "market_premium": null,
-    "unit": "20LC",
+    "unit": "6LC",
     "image_url": "https://minecraft.wiki/images/Mud_Bricks_JE1_BE1.png"
   },
   {
     "name": "固めた泥",
-    "value": 6.4,
+    "value": 2.3,
     "market_premium": null,
-    "unit": "20LC",
+    "unit": "4LC",
     "image_url": "https://minecraft.wiki/images/Packed_Mud_JE1_BE1.png"
   },
   {
     "name": "干草の俵",
     "value": 3.6,
     "market_premium": 0.1,
-    "unit": "5LC",
+    "unit": "1LC",
     "image_url": "https://minecraft.wiki/images/Hay_Bale_%28UD%29_JE2_BE2.png"
   },
   {
     "name": "茶色のキノコブロック",
-    "value": 8.7,
+    "value": 13.8,
     "market_premium": 0.2,
-    "unit": "20LC",
+    "unit": "4LC",
     "image_url": "https://minecraft.wiki/images/Brown_Mushroom_Block_%28ESU%29_JE2_BE2.png"
   },
   {
     "name": "レンガ (ブロック)",
-    "value": 9.7,
-    "market_premium": 0.5,
-    "unit": "20LC",
+    "value": 12.3,
+    "market_premium": 0.2,
+    "unit": "9LC",
     "image_url": "https://minecraft.wiki/images/Bricks_JE5_BE3.png"
   }
 ]

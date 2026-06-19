@@ -21,6 +21,35 @@ fn sanitize_url(url: &str) -> String {
         .collect()
 }
 
+fn unit_capacity(unit: &str) -> f64 {
+    unit.chars()
+        .filter(|c| c.is_ascii_digit())
+        .collect::<String>()
+        .parse::<f64>()
+        .ok()
+        .filter(|capacity| *capacity > 0.0)
+        .unwrap_or(20.0)
+}
+
+fn total_ratio(item: &ItemData) -> f64 {
+    let total_value = item.value + item.market_premium.unwrap_or(0.0);
+    (total_value / unit_capacity(&item.unit)).max(0.0)
+}
+
+fn axis_max_ratio(items: &[ItemData]) -> f64 {
+    let max_ratio = items.iter().map(total_ratio).fold(1.0, f64::max);
+
+    if max_ratio <= 1.0 {
+        1.0
+    } else {
+        max_ratio.ceil()
+    }
+}
+
+fn percent_label(ratio: f64) -> String {
+    format!("{:.0}%", ratio * 100.0)
+}
+
 pub async fn generate_graph() -> Result<(), anyhow::Error> {
     // 1. Read JSON input data
     let data_path = "./input/chart_data.json";
@@ -160,22 +189,23 @@ pub async fn generate_graph() -> Result<(), anyhow::Error> {
         width, height, width, height, width, height, generated_at
     ));
 
-    // Grid details (scaled relative to 100% of capacity)
+    // Grid details (scaled relative to the largest value in the data)
     let grid_x_start = 280.0;
-    let grid_scale = 440.0; // 100% = 440px
+    let grid_scale = 440.0;
     let grid_y_start = 20.0;
     let grid_y_end = 355.0;
+    let axis_max_ratio = axis_max_ratio(&items);
 
-    // Draw Grid Lines representing percentages (0%, 25%, 50%, 75%, 100%)
+    // Draw Grid Lines representing percentages up to the current axis max
     let ticks = [0.0, 0.25, 0.50, 0.75, 1.00];
-    let tick_labels = ["0%", "25%", "50%", "75%", "100%"];
-    for (idx, &t) in ticks.iter().enumerate() {
+    for &t in &ticks {
         let x = grid_x_start + t * grid_scale;
+        let label = percent_label(t * axis_max_ratio);
         svg.push_str(&format!(
             r##"  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="#313244" stroke-width="1" stroke-dasharray="4"/>
   <text x="{}" y="372" font-size="11" fill="#bac2de" font-family="sans-serif" text-anchor="middle">{}</text>
 "##,
-            x, grid_y_start, x, grid_y_end, x, tick_labels[idx]
+            x, grid_y_start, x, grid_y_end, x, label
         ));
     }
 
@@ -196,13 +226,7 @@ pub async fn generate_graph() -> Result<(), anyhow::Error> {
         let bar_h = 20.0;
 
         // Dynamic max capacity based on item unit (e.g. 5 for "5LC", 20 for "20LC")
-        let max_lc = item
-            .unit
-            .chars()
-            .filter(|c| c.is_ascii_digit())
-            .collect::<String>()
-            .parse::<f64>()
-            .unwrap_or(20.0);
+        let max_lc = unit_capacity(&item.unit);
 
         // Draw Row background block
         svg.push_str(&format!(
@@ -257,8 +281,8 @@ pub async fn generate_graph() -> Result<(), anyhow::Error> {
 
         // Calculate lengths as percentage of capacity
         let premium_val = item.market_premium.unwrap_or(0.0);
-        let base_w = (item.value / max_lc) * grid_scale;
-        let premium_w = (premium_val / max_lc) * grid_scale;
+        let base_w = (item.value / max_lc / axis_max_ratio) * grid_scale;
+        let premium_w = (premium_val / max_lc / axis_max_ratio) * grid_scale;
         let total_pct = ((item.value + premium_val) / max_lc) * 100.0;
 
         if premium_val > 0.0 {
