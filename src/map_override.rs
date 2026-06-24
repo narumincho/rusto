@@ -12,11 +12,17 @@ use hyper::service::service_fn;
 use hyper::{Request, Response, StatusCode};
 use hyper_util::rt::TokioIo;
 use serde_json::Value;
+use serde_json::json;
 use tokio::net::TcpListener;
 
 const LISTEN_ADDR: ([u8; 4], u16) = ([127, 0, 0, 1], 3000);
 const UPSTREAM_ORIGIN: &str = "https://seikatsumain.map.morino.party";
 const MARKERS_JSON_PATH: &str = "/tiles/minecraft_overworld/markers.json";
+const CIRCLE_CENTER_X: f64 = 1722.0;
+const CIRCLE_CENTER_Z: f64 = -5080.0;
+const CIRCLE_DIAMETER: f64 = 92.6876475049 * 2.0;
+const CIRCLE_OFFSET: f64 = 130.0;
+const CIRCLE_POINT_COUNT: usize = 64;
 
 #[derive(Clone)]
 struct ProxyState {
@@ -121,7 +127,52 @@ fn process_markers_json(body: &Bytes) -> anyhow::Result<Bytes> {
             .and_then(Value::as_str)
             .is_none_or(|id| id != "griefprevention")
     });
+    marker_sets.push(circle_marker_set());
     Ok(Bytes::from(serde_json::to_vec(&marker_sets)?))
+}
+
+fn circle_marker_set() -> Value {
+    let markers = [-CIRCLE_OFFSET, 0.0, CIRCLE_OFFSET]
+        .into_iter()
+        .flat_map(|x_offset| {
+            [-CIRCLE_OFFSET, 0.0, CIRCLE_OFFSET]
+                .into_iter()
+                .map(move |z_offset| {
+                    let center_x = CIRCLE_CENTER_X + x_offset;
+                    let center_z = CIRCLE_CENTER_Z + z_offset;
+                    json!({
+                        "color": "#ff00ff",
+                        "fillColor": "#ff00ff",
+                        "fillOpacity": 0.2,
+                        "type": "polygon",
+                        "points": circle_points(center_x, center_z),
+                    })
+                })
+        })
+        .collect::<Vec<_>>();
+
+    json!({
+        "hide": false,
+        "z_index": 100,
+        "name": "追加領域",
+        "control": true,
+        "id": "rusto-added-circles",
+        "markers": markers,
+        "order": 100,
+    })
+}
+
+fn circle_points(center_x: f64, center_z: f64) -> Vec<Value> {
+    let radius = CIRCLE_DIAMETER / 2.0;
+    (0..=CIRCLE_POINT_COUNT)
+        .map(|index| {
+            let angle = std::f64::consts::TAU * index as f64 / CIRCLE_POINT_COUNT as f64;
+            json!({
+                "x": center_x + radius * angle.cos(),
+                "z": center_z + radius * angle.sin(),
+            })
+        })
+        .collect()
 }
 
 fn should_forward_request_header(name: &hyper::header::HeaderName) -> bool {
