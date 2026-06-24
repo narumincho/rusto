@@ -1,5 +1,6 @@
 use std::convert::Infallible;
 use std::net::SocketAddr;
+use std::sync::LazyLock;
 
 use http_body_util::{BodyExt, Full};
 use hyper::body::Bytes;
@@ -20,9 +21,14 @@ const UPSTREAM_ORIGIN: &str = "https://seikatsumain.map.morino.party";
 const MARKERS_JSON_PATH: &str = "/tiles/minecraft_overworld/markers.json";
 const CIRCLE_CENTER_X: f64 = 1722.0;
 const CIRCLE_CENTER_Z: f64 = -5080.0;
-const CIRCLE_DIAMETER: f64 = 92.6876475049 * 2.0;
-const CIRCLE_OFFSET: f64 = 130.0;
-const CIRCLE_POINT_COUNT: usize = 64;
+const CIRCLE_SOURCE_HYPOTENUSE: f64 = 96.0;
+const CIRCLE_SOURCE_LEG: f64 = 30.0;
+static CIRCLE_RADIUS: LazyLock<f64> = LazyLock::new(|| {
+    (CIRCLE_SOURCE_HYPOTENUSE * CIRCLE_SOURCE_HYPOTENUSE - CIRCLE_SOURCE_LEG * CIRCLE_SOURCE_LEG)
+        .sqrt()
+});
+static CIRCLE_DIAMETER: LazyLock<f64> = LazyLock::new(|| *CIRCLE_RADIUS * 2.0);
+static CIRCLE_OFFSET: LazyLock<f64> = LazyLock::new(|| std::f64::consts::SQRT_2 * *CIRCLE_RADIUS);
 
 #[derive(Clone)]
 struct ProxyState {
@@ -132,10 +138,10 @@ fn process_markers_json(body: &Bytes) -> anyhow::Result<Bytes> {
 }
 
 fn circle_marker_set() -> Value {
-    let markers = [-CIRCLE_OFFSET, 0.0, CIRCLE_OFFSET]
+    let markers = [-*CIRCLE_OFFSET, 0.0, *CIRCLE_OFFSET]
         .into_iter()
         .flat_map(|x_offset| {
-            [-CIRCLE_OFFSET, 0.0, CIRCLE_OFFSET]
+            [-*CIRCLE_OFFSET, 0.0, *CIRCLE_OFFSET]
                 .into_iter()
                 .map(move |z_offset| {
                     let center_x = CIRCLE_CENTER_X + x_offset;
@@ -143,9 +149,13 @@ fn circle_marker_set() -> Value {
                     json!({
                         "color": "#ff00ff",
                         "fillColor": "#ff00ff",
-                        "fillOpacity": 0.2,
-                        "type": "polygon",
-                        "points": circle_points(center_x, center_z),
+                        "popup": "追加領域",
+                        "center": {
+                            "x": center_x,
+                            "z": center_z,
+                        },
+                        "type": "circle",
+                        "radius": *CIRCLE_DIAMETER / 2.0,
                     })
                 })
         })
@@ -160,19 +170,6 @@ fn circle_marker_set() -> Value {
         "markers": markers,
         "order": 100,
     })
-}
-
-fn circle_points(center_x: f64, center_z: f64) -> Vec<Value> {
-    let radius = CIRCLE_DIAMETER / 2.0;
-    (0..=CIRCLE_POINT_COUNT)
-        .map(|index| {
-            let angle = std::f64::consts::TAU * index as f64 / CIRCLE_POINT_COUNT as f64;
-            json!({
-                "x": center_x + radius * angle.cos(),
-                "z": center_z + radius * angle.sin(),
-            })
-        })
-        .collect()
 }
 
 fn should_forward_request_header(name: &hyper::header::HeaderName) -> bool {
