@@ -138,28 +138,41 @@ fn process_markers_json(body: &Bytes) -> anyhow::Result<Bytes> {
 }
 
 fn circle_marker_set() -> Value {
-    let markers = [-*CIRCLE_OFFSET, 0.0, *CIRCLE_OFFSET]
-        .into_iter()
-        .flat_map(|x_offset| {
-            [-*CIRCLE_OFFSET, 0.0, *CIRCLE_OFFSET]
-                .into_iter()
-                .map(move |z_offset| {
-                    let center_x = CIRCLE_CENTER_X + x_offset;
-                    let center_z = CIRCLE_CENTER_Z + z_offset;
-                    json!({
-                        "color": "#ff00ff",
-                        "fillColor": "#ff00ff",
-                        "popup": "追加領域",
-                        "center": {
-                            "x": center_x,
-                            "z": center_z,
-                        },
-                        "type": "circle",
-                        "radius": *CIRCLE_DIAMETER / 2.0,
-                    })
-                })
+    let base = (CIRCLE_SOURCE_HYPOTENUSE * CIRCLE_SOURCE_HYPOTENUSE
+        - CIRCLE_SOURCE_LEG * CIRCLE_SOURCE_LEG)
+        .sqrt();
+    let a: i32 = (base * 3_f64.sqrt()) as i32;
+    let b: i32 = (base * 3.0 / 2.0) as i32;
+    println!("CIRCLE_RADIUS: {}, a: {}, b: {}", *CIRCLE_RADIUS, a, b);
+
+    let markers = [
+        (-a + a / 2, b),
+        (0 + a / 2, b),
+        // (a + a / 2, b),
+        (-a, 0),
+        (0, 0),
+        (a, 0),
+        (-a + a / 2, -b),
+        (0 + a / 2, -b),
+        // (a + a / 2, -b),
+    ];
+    let absolute_markers =
+        markers.map(|(x, z)| (x + CIRCLE_CENTER_X as i32, z + CIRCLE_CENTER_Z as i32));
+    println!("absolute_markers: {:?}", absolute_markers);
+
+    let markers_json = absolute_markers.map(move |(x, z)| {
+        json!({
+            "color": "#ff00ff",
+            "fillColor": "#ff00ff",
+            "popup": "追加領域",
+            "center": {
+                "x": x ,
+                "z": z as f64,
+            },
+            "type": "circle",
+            "radius": *CIRCLE_DIAMETER / 2.0,
         })
-        .collect::<Vec<_>>();
+    });
 
     json!({
         "hide": false,
@@ -167,7 +180,7 @@ fn circle_marker_set() -> Value {
         "name": "追加領域",
         "control": true,
         "id": "rusto-added-circles",
-        "markers": markers,
+        "markers": markers_json,
         "order": 100,
     })
 }
