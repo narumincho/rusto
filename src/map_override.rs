@@ -19,10 +19,10 @@ use tokio::net::TcpListener;
 const LISTEN_ADDR: ([u8; 4], u16) = ([127, 0, 0, 1], 3000);
 const UPSTREAM_ORIGIN: &str = "https://seikatsumain.map.morino.party";
 const MARKERS_JSON_PATH: &str = "/tiles/minecraft_overworld/markers.json";
-const CIRCLE_CENTER_X: f64 = 1722.0;
-const CIRCLE_CENTER_Z: f64 = -5080.0;
+const CIRCLE_CENTER_X: i32 = 1722;
+const CIRCLE_CENTER_Z: i32 = -5105;
 const CIRCLE_SOURCE_HYPOTENUSE: f64 = 96.0;
-const CIRCLE_SOURCE_LEG: f64 = 30.0;
+const CIRCLE_SOURCE_LEG: f64 = 25.0;
 static CIRCLE_RADIUS: LazyLock<f64> = LazyLock::new(|| {
     (CIRCLE_SOURCE_HYPOTENUSE * CIRCLE_SOURCE_HYPOTENUSE - CIRCLE_SOURCE_LEG * CIRCLE_SOURCE_LEG)
         .sqrt()
@@ -143,36 +143,58 @@ fn circle_marker_set() -> Value {
         .sqrt();
     let a: i32 = (base * 3_f64.sqrt()) as i32;
     let b: i32 = (base * 3.0 / 2.0) as i32;
-    println!("CIRCLE_RADIUS: {}, a: {}, b: {}", *CIRCLE_RADIUS, a, b);
+    let c: i32 = (base * 2_f64.sqrt()) as i32;
+    println!(
+        "CIRCLE_RADIUS: {}, a: {}, b: {}, c: {}",
+        *CIRCLE_RADIUS, a, b, c
+    );
 
-    let markers = [
-        (-a + a / 2, b),
-        (0 + a / 2, b),
-        // (a + a / 2, b),
-        (-a, 0),
-        (0, 0),
-        (a, 0),
-        (-a + a / 2, -b),
-        (0 + a / 2, -b),
-        // (a + a / 2, -b),
-    ];
-    let absolute_markers =
-        markers.map(|(x, z)| (x + CIRCLE_CENTER_X as i32, z + CIRCLE_CENTER_Z as i32));
-    println!("absolute_markers: {:?}", absolute_markers);
-
-    let markers_json = absolute_markers.map(move |(x, z)| {
-        json!({
-            "color": "#ff00ff",
-            "fillColor": "#ff00ff",
-            "popup": "追加領域",
-            "center": {
-                "x": x ,
-                "z": z as f64,
-            },
-            "type": "circle",
-            "radius": *CIRCLE_DIAMETER / 2.0,
+    let markers = [-1.5, -0.5, 0.5, 1.5]
+        .iter()
+        .flat_map(|&x| {
+            [-1.5, -0.5, 0.5, 1.5].iter().map(move |&z| {
+                let x = (x * c as f64) as i32;
+                let z = (z * c as f64) as i32;
+                (x, z)
+            })
         })
-    });
+        .collect::<Vec<(i32, i32)>>();
+    let absolute_markers = markers
+        .into_iter()
+        .map(|(x, z)| (x + CIRCLE_CENTER_X, z + CIRCLE_CENTER_Z))
+        .collect::<Vec<(i32, i32)>>();
+    println!(
+        "{:}",
+        absolute_markers
+            .iter()
+            .enumerate()
+            .map(|(i, (x, z))| {
+                // format!("- [ ] {}, 40, {}\n", x, z)
+                let name = (b'A' + i as u8) as char;
+                format!(
+                    "waypoint:{}:{}:{}:40:{}:3:false:0:gui.xaero_default:false:0:0:false\n",
+                    name, name, x, z
+                )
+            })
+            .collect::<String>()
+    );
+
+    let markers_json = absolute_markers
+        .into_iter()
+        .map(move |(x, z)| {
+            json!({
+                "color": "#ff00ff",
+                "fillColor": "#ff00ff",
+                "popup": "追加領域",
+                "center": {
+                    "x": x ,
+                    "z": z as f64,
+                },
+                "type": "circle",
+                "radius": *CIRCLE_DIAMETER / 2.0,
+            })
+        })
+        .collect::<Vec<Value>>();
 
     json!({
         "hide": false,
