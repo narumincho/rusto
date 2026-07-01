@@ -19,16 +19,17 @@ use tokio::net::TcpListener;
 const LISTEN_ADDR: ([u8; 4], u16) = ([127, 0, 0, 1], 3000);
 const UPSTREAM_ORIGIN: &str = "https://seikatsumain.map.morino.party";
 const MARKERS_JSON_PATH: &str = "/tiles/minecraft_overworld/markers.json";
-const CIRCLE_CENTER_X: i32 = 1722;
-const CIRCLE_CENTER_Z: i32 = -5105;
-const CIRCLE_SOURCE_HYPOTENUSE: f64 = 96.0;
-const CIRCLE_SOURCE_LEG: f64 = 25.0;
-static CIRCLE_RADIUS: LazyLock<f64> = LazyLock::new(|| {
+pub const CIRCLE_CENTER_X: i32 = 1722;
+pub const CIRCLE_CENTER_Z: i32 = -5105;
+pub const CIRCLE_SOURCE_HYPOTENUSE: f64 = 96.0;
+pub const CIRCLE_SOURCE_LEG: f64 = 25.0;
+pub static CIRCLE_RADIUS: LazyLock<f64> = LazyLock::new(|| {
     (CIRCLE_SOURCE_HYPOTENUSE * CIRCLE_SOURCE_HYPOTENUSE - CIRCLE_SOURCE_LEG * CIRCLE_SOURCE_LEG)
         .sqrt()
 });
-static CIRCLE_DIAMETER: LazyLock<f64> = LazyLock::new(|| *CIRCLE_RADIUS * 2.0);
-static CIRCLE_OFFSET: LazyLock<f64> = LazyLock::new(|| std::f64::consts::SQRT_2 * *CIRCLE_RADIUS);
+pub static CIRCLE_DIAMETER: LazyLock<f64> = LazyLock::new(|| *CIRCLE_RADIUS * 2.0);
+pub static CIRCLE_GRID_SPACING: LazyLock<i32> =
+    LazyLock::new(|| (*CIRCLE_RADIUS * 2_f64.sqrt()) as i32);
 
 #[derive(Clone)]
 struct ProxyState {
@@ -138,12 +139,10 @@ fn process_markers_json(body: &Bytes) -> anyhow::Result<Bytes> {
 }
 
 fn circle_marker_set() -> Value {
-    let base = (CIRCLE_SOURCE_HYPOTENUSE * CIRCLE_SOURCE_HYPOTENUSE
-        - CIRCLE_SOURCE_LEG * CIRCLE_SOURCE_LEG)
-        .sqrt();
+    let base = *CIRCLE_RADIUS;
     let a: i32 = (base * 3_f64.sqrt()) as i32;
     let b: i32 = (base * 3.0 / 2.0) as i32;
-    let c: i32 = (base * 2_f64.sqrt()) as i32;
+    let c: i32 = *CIRCLE_GRID_SPACING;
     println!(
         "CIRCLE_RADIUS: {}, a: {}, b: {}, c: {}",
         *CIRCLE_RADIUS, a, b, c
