@@ -1,3 +1,5 @@
+use resvg::tiny_skia;
+use resvg::usvg;
 use rusto::map_override::{CIRCLE_GRID_SPACING, CIRCLE_SOURCE_HYPOTENUSE};
 use std::fs;
 use std::path::Path;
@@ -188,9 +190,9 @@ fn main() -> anyhow::Result<()> {
   <rect width="100%" height="100%" fill="url(#bg-grad)" />
 
   <!-- Main Dashboard Header -->
-  <g transform="translate(960, 65)" text-anchor="middle">
-    <text font-size="28" font-weight="700" fill="#ffffff" letter-spacing="3">CONDUIT EFFECT RANGE ANALYSIS</text>
-    <text font-size="14" font-weight="300" fill="#6c7d9c" letter-spacing="1" dy="22">Side-View Vertical Cross-Section Slice &amp; Intersection Profile</text>
+  <g transform="translate(960, 55)" text-anchor="middle">
+    <text font-size="38" font-weight="700" fill="#ffffff" letter-spacing="3">ゴンジット効果範囲 断面分析</text>
+    <text font-size="18" font-weight="300" fill="#6c7d9c" letter-spacing="1" dy="28">垂直断面図（スライス）および効果範囲の交点プロファイル</text>
   </g>
 "##,
         width, height
@@ -212,16 +214,14 @@ fn main() -> anyhow::Result<()> {
      -> String {
         let mut p = String::new();
 
-        let label_x_offset = if panel_idx == 0 { -435.0 } else { -435.0 };
-
         p.push_str(&format!(
             r##"
   <!-- ==================== PANEL {} ==================== -->
   <g id="panel-{}">
     <!-- Panel Header -->
     <g transform="translate({}, 115)" text-anchor="middle">
-      <text font-size="18" font-weight="600" fill="#00e5ff" letter-spacing="1">{}</text>
-      <text font-size="12" font-weight="300" fill="#a0aec0" dy="18">{}</text>
+      <text font-size="24" font-weight="600" fill="#00e5ff" letter-spacing="1">{}</text>
+      <text font-size="15" font-weight="300" fill="#a0aec0" dy="22">{}</text>
     </g>
 
     <!-- Panel Border / Clipping Area Container -->
@@ -290,21 +290,21 @@ fn main() -> anyhow::Result<()> {
 
             // Ticks text label next to the ruler line (at the left border)
             let tick_label = if tick_y == 62 {
-                "Y=62 (Sea)".to_string()
+                "Y=62 (海面)".to_string()
             } else if tick_y == 45 {
-                "Y=45 (Conduit)".to_string()
+                "Y=45 (ゴンジット)".to_string()
             } else if tick_y == 40 {
-                "Y=40 (Bed max)".to_string()
+                "Y=40 (海底上限)".to_string()
             } else if tick_y == 20 {
-                "Y=20 (Bed min)".to_string()
+                "Y=20 (海底下限)".to_string()
             } else {
                 format!("Y={}", tick_y)
             };
 
             p.push_str(&format!(
-                r##"      <text x="{}" y="{}" fill="#6c7d9c" font-size="10" font-weight="600" text-anchor="end" dx="-10" dy="3">{}</text>
+                r##"      <text x="{}" y="{}" fill="#a0aec0" font-size="12" font-weight="600" text-anchor="start" stroke="#0d1321" stroke-width="3px" paint-order="stroke" dy="4">{}</text>
 "##,
-                cx + label_x_offset, svg_y_val, tick_label
+                cx - 410.0, svg_y_val, tick_label
             ));
         }
 
@@ -347,8 +347,8 @@ fn main() -> anyhow::Result<()> {
       </g>
       <!-- Horizontal distance line between conduits -->
       <line x1="{:.2}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="#00ffff" stroke-width="1.5" stroke-dasharray="2,2" opacity="0.7" />
-      <rect x="{:.2}" y="{:.2}" width="100" height="20" rx="4" fill="#0d1321" stroke="#00e5ff" stroke-width="1" transform="translate(-50, -10)" />
-      <text x="{:.2}" y="{:.2}" fill="#00ffff" font-size="10" font-weight="700" text-anchor="middle" dy="4">D = {:.2}m</text>
+      <rect x="{:.2}" y="{:.2}" width="140" height="26" rx="5" fill="#0d1321" stroke="#00e5ff" stroke-width="1.25" transform="translate(-70, -13)" />
+      <text x="{:.2}" y="{:.2}" fill="#00ffff" font-size="14" font-weight="700" text-anchor="middle" dy="5">距離 = {:.2}m</text>
 "##,
             x1, cy, x1, cy,
             x2, cy, x2, cy,
@@ -368,8 +368,8 @@ fn main() -> anyhow::Result<()> {
         <circle cx="{:.2}" cy="{:.2}" r="2" fill="#ff00ff" />
         
         <!-- Label bubble -->
-        <rect x="{:.2}" y="{:.2}" width="95" height="24" rx="4" fill="#180e22" stroke="#ff00ff" stroke-width="1" transform="translate(12, -12)" />
-        <text x="{:.2}" y="{:.2}" fill="#ff55ff" font-size="11" font-weight="700" text-anchor="start" dx="20" dy="4">Y = {:.2}</text>
+        <rect x="{:.2}" y="{:.2}" width="120" height="28" rx="5" fill="#180e22" stroke="#ff00ff" stroke-width="1.25" transform="translate(15, -14)" />
+        <text x="{:.2}" y="{:.2}" fill="#ff55ff" font-size="15" font-weight="700" text-anchor="start" dx="25" dy="5">Y = {:.2}</text>
       </g>
       
       <!-- Lower Intersection -->
@@ -379,8 +379,8 @@ fn main() -> anyhow::Result<()> {
         <circle cx="{:.2}" cy="{:.2}" r="2" fill="#ff00ff" />
         
         <!-- Label bubble -->
-        <rect x="{:.2}" y="{:.2}" width="95" height="24" rx="4" fill="#180e22" stroke="#ff00ff" stroke-width="1" transform="translate(12, -12)" />
-        <text x="{:.2}" y="{:.2}" fill="#ff55ff" font-size="11" font-weight="700" text-anchor="start" dx="20" dy="4">Y = {:.2}</text>
+        <rect x="{:.2}" y="{:.2}" width="120" height="28" rx="5" fill="#180e22" stroke="#ff00ff" stroke-width="1.25" transform="translate(15, -14)" />
+        <text x="{:.2}" y="{:.2}" fill="#ff55ff" font-size="15" font-weight="700" text-anchor="start" dx="25" dy="5">Y = {:.2}</text>
       </g>
 "##,
             cx - 420.0, svg_y_upper, cx + 420.0, svg_y_upper,
@@ -417,9 +417,9 @@ fn main() -> anyhow::Result<()> {
     svg.push_str(&render_panel(
         0,
         cx_left,
-        "CLOSE COUPLING SLICE (ADJACENT)",
+        "近接配置スライス（隣接）",
         &format!(
-            "Cross section along Z-axis (or X-axis) | Separation: {} blocks",
+            "X軸またはZ軸に沿った垂直断面 | ゴンジット間隔: {}ブロック",
             d_close
         ),
         x_l1,
@@ -436,9 +436,9 @@ fn main() -> anyhow::Result<()> {
     svg.push_str(&render_panel(
         1,
         cx_right,
-        "DIAGONAL SLICE (FAR COUPLING)",
+        "対角線スライス（遠方）",
         &format!(
-            "Cross section along diagonal grid line (45°) | Separation: {:.2} blocks",
+            "対角グリッド線（45°）に沿った斜め垂直断面 | ゴンジット間隔: {:.2}ブロック",
             d_far
         ),
         x_r1,
@@ -455,19 +455,19 @@ fn main() -> anyhow::Result<()> {
     svg.push_str(&format!(
         r##"
   <!-- General Legend/Metadata -->
-  <g transform="translate(960, 890)" text-anchor="middle" font-size="12" fill="#6c7d9c">
-    <rect x="-350" y="-20" width="700" height="35" rx="6" fill="#0d1321" stroke="#1d263b" stroke-width="1" />
-    <g transform="translate(-250, 2)">
-      <circle cx="0" cy="-2" r="5" fill="#00ffff" />
-      <text x="12" y="2" text-anchor="start" font-weight="600">Conduit Node (Y=45)</text>
+  <g transform="translate(960, 890)" text-anchor="middle" font-size="16" fill="#6c7d9c">
+    <rect x="-475" y="-22" width="950" height="45" rx="8" fill="#0d1321" stroke="#1d263b" stroke-width="1.25" />
+    <g transform="translate(-320, 5)">
+      <circle cx="0" cy="-2" r="6" fill="#00ffff" />
+      <text x="15" y="1" text-anchor="start" font-weight="600">ゴンジット本体 (Y=45)</text>
     </g>
-    <g transform="translate(-70, 2)">
-      <circle cx="0" cy="-2" r="5" fill="none" stroke="#00ffff" stroke-width="1.5" />
-      <text x="12" y="2" text-anchor="start" font-weight="600">Coverage Boundary (R=96)</text>
+    <g transform="translate(-60, 5)">
+      <circle cx="0" cy="-2" r="6" fill="none" stroke="#00ffff" stroke-width="1.5" />
+      <text x="15" y="1" text-anchor="start" font-weight="600">効果範囲の境界 (R=96)</text>
     </g>
-    <g transform="translate(130, 2)">
-      <rect x="-6" y="-7" width="12" height="10" fill="url(#overlap-grad)" stroke="#ff00ff" stroke-width="1" />
-      <text x="12" y="2" text-anchor="start" font-weight="600">Overlap Area (Intersection)</text>
+    <g transform="translate(200, 5)">
+      <rect x="-6" y="-8" width="12" height="12" fill="url(#overlap-grad)" stroke="#ff00ff" stroke-width="1" />
+      <text x="15" y="1" text-anchor="start" font-weight="600">重複エリア（交差部分）</text>
     </g>
   </g>
 </svg>
@@ -480,10 +480,34 @@ fn main() -> anyhow::Result<()> {
         fs::create_dir_all(output_dir)?;
     }
     let output_path = output_dir.join("conduit_coverage.svg");
-    fs::write(&output_path, svg)?;
+    fs::write(&output_path, &svg)?;
     println!(
         "Successfully generated conduit coverage SVG at {:?}",
         output_path
+    );
+
+    // Render to PNG using resvg & usvg
+    let mut fontdb = usvg::fontdb::Database::new();
+    fontdb.load_system_fonts();
+
+    let mut opt = usvg::Options::default();
+    opt.fontdb = std::sync::Arc::new(fontdb);
+
+    let tree = usvg::Tree::from_str(&svg, &opt)?;
+
+    let size = tree.size();
+    let pixmap_width = size.width() as u32;
+    let pixmap_height = size.height() as u32;
+    let mut pixmap = tiny_skia::Pixmap::new(pixmap_width, pixmap_height)
+        .ok_or_else(|| anyhow::anyhow!("Failed to create tiny-skia Pixmap"))?;
+
+    resvg::render(&tree, tiny_skia::Transform::default(), &mut pixmap.as_mut());
+
+    let png_path = output_dir.join("conduit_coverage.png");
+    pixmap.save_png(&png_path)?;
+    println!(
+        "Successfully generated conduit coverage PNG at {:?}",
+        png_path
     );
 
     Ok(())

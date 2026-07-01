@@ -28,8 +28,3 @@ aws-credential-types = "1"
 clap = { version = "4", features = ["derive", "env"] }
 indicatif = "0.17"
 futures = "0.3"
-
-
-[workspace]
-members = []
-exclude = ["frontend"]
