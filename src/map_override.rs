@@ -169,10 +169,10 @@ fn circle_marker_set() -> Value {
             .iter()
             .enumerate()
             .map(|(i, (x, z))| {
-                // format!("- [ ] {}, 40, {}\n", x, z)
                 let name = (b'A' + i as u8) as char;
+                // format!("- [ ] {} {}, 45, {}\n", name, x, z)
                 format!(
-                    "waypoint:{}:{}:{}:40:{}:3:false:0:gui.xaero_default:false:0:0:false\n",
+                    "waypoint:{}:{}:{}:45:{}:3:false:0:gui.xaero_default:false:0:0:false\n",
                     name, name, x, z
                 )
             })
